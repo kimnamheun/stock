@@ -1,7 +1,7 @@
 import type { FxQuote, StockQuote } from "./types";
 
-// 삼성전자, SK하이닉스, 현대차우
-const STOCK_CODES = ["005930", "000660", "005385"];
+// 삼성전자, SK하이닉스, 현대차우, TIGER 미국나스닥100, TIGER 미국S&P500
+const STOCK_CODES = ["005930", "000660", "005385", "133690", "360750"];
 
 const NAVER_POLLING_URL = `https://polling.finance.naver.com/api/realtime/domestic/stock/${STOCK_CODES.join(",")}`;
 

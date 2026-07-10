@@ -78,7 +78,7 @@ export default function Dashboard() {
       <section className="grid grid-cols-3 gap-2 sm:gap-3 xl:grid-cols-4">
         {stocks.length > 0
           ? stocks.map((q) => <StockCard key={q.code} quote={q} />)
-          : [0, 1, 2].map((i) => (
+          : [0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
                 className="h-32 animate-pulse rounded-xl border border-slate-800 bg-slate-900/40"
