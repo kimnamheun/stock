@@ -1,4 +1,7 @@
+"use client";
+
 import type { FxQuote } from "@/lib/types";
+import { flashClass, usePriceFlash } from "@/lib/usePriceFlash";
 import { changeArrow, changeColor } from "./StockCard";
 
 const nf = new Intl.NumberFormat("ko-KR", {
@@ -8,8 +11,11 @@ const nf = new Intl.NumberFormat("ko-KR", {
 
 export default function FxCard({ quote }: { quote: FxQuote }) {
   const color = changeColor(quote.change);
+  const flash = usePriceFlash(quote.price);
   return (
-    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 shadow-lg sm:p-3.5">
+    <div
+      className={`min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 shadow-lg transition-all duration-500 sm:p-3.5 ${flashClass(flash)}`}
+    >
       <div className="flex items-center justify-between">
         <h2 className="truncate text-xs font-bold text-slate-100 sm:text-sm">
           USD/KRW 환율

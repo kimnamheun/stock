@@ -1,4 +1,7 @@
+"use client";
+
 import type { StockQuote } from "@/lib/types";
+import { flashClass, usePriceFlash } from "@/lib/usePriceFlash";
 
 const nf = new Intl.NumberFormat("ko-KR");
 
@@ -17,8 +20,11 @@ export function changeArrow(change: number): string {
 export default function StockCard({ quote }: { quote: StockQuote }) {
   const color = changeColor(quote.change);
   const isOpen = quote.marketStatus === "OPEN";
+  const flash = usePriceFlash(quote.price);
   return (
-    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 shadow-lg sm:p-3.5">
+    <div
+      className={`min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 shadow-lg transition-all duration-500 sm:p-3.5 ${flashClass(flash)}`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex min-w-0 items-baseline gap-1.5">
           <h2 className="truncate text-xs font-bold text-slate-100 sm:text-sm">

@@ -6,7 +6,6 @@ import StockCard from "./StockCard";
 import FxCard from "./FxCard";
 import YieldChart from "./YieldChart";
 
-const FAST_INTERVAL_MS = 7_000; // 주가·환율 (네이버 권장 폴링 주기)
 const SLOW_INTERVAL_MS = 300_000; // 미국 국채 수익률 (5분)
 
 export default function Dashboard() {
@@ -14,22 +13,7 @@ export default function Dashboard() {
   const [fx, setFx] = useState<FxQuote | null>(null);
   const [treasury, setTreasury] = useState<TreasurySeries[]>([]);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadFast = useCallback(async () => {
-    try {
-      const [stockRes, fxRes] = await Promise.all([
-        fetch("/api/stocks").then((r) => r.json()),
-        fetch("/api/fx").then((r) => r.json()),
-      ]);
-      if (stockRes.quotes) setStocks(stockRes.quotes);
-      if (fxRes.quote) setFx(fxRes.quote);
-      setUpdatedAt(new Date());
-      setError(stockRes.error ?? fxRes.error ?? null);
-    } catch {
-      setError("데이터를 불러오지 못했습니다. 네트워크를 확인해주세요.");
-    }
-  }, []);
+  const [connected, setConnected] = useState(false);
 
   const loadTreasury = useCallback(async () => {
     try {
@@ -40,16 +24,32 @@ export default function Dashboard() {
     }
   }, []);
 
+  // 주가·환율: SSE 스트림 수신 (서버가 2초 간격으로 감지, 변경 시에만 push)
   useEffect(() => {
-    loadFast();
-    loadTreasury();
-    const fastTimer = setInterval(loadFast, FAST_INTERVAL_MS);
-    const slowTimer = setInterval(loadTreasury, SLOW_INTERVAL_MS);
-    return () => {
-      clearInterval(fastTimer);
-      clearInterval(slowTimer);
+    const es = new EventSource("/api/stream");
+    es.onopen = () => setConnected(true);
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.quotes) setStocks(data.quotes);
+        if (data.fx) setFx(data.fx);
+        setUpdatedAt(new Date());
+        setConnected(true);
+      } catch {
+        // 잘못된 프레임 무시
+      }
     };
-  }, [loadFast, loadTreasury]);
+    // 서버가 주기적으로 스트림을 닫으면 EventSource가 자동 재접속한다
+    es.onerror = () => setConnected(false);
+    return () => es.close();
+  }, []);
+
+  // 미국 국채: 5분 주기 폴링
+  useEffect(() => {
+    loadTreasury();
+    const slowTimer = setInterval(loadTreasury, SLOW_INTERVAL_MS);
+    return () => clearInterval(slowTimer);
+  }, [loadTreasury]);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
@@ -62,20 +62,17 @@ export default function Dashboard() {
             네이버 금융 시세 · 하나은행 고시환율 · 야후 파이낸스 국채 수익률
           </p>
         </div>
-        {updatedAt && (
-          <p className="text-xs text-slate-500">
-            마지막 갱신{" "}
-            {updatedAt.toLocaleTimeString("ko-KR", { hour12: false })} (7초마다
-            자동 갱신)
-          </p>
-        )}
+        <p className="flex items-center gap-1.5 text-xs text-slate-500">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              connected ? "animate-pulse bg-emerald-400" : "bg-amber-400"
+            }`}
+          />
+          {connected ? "실시간 수신 중" : "재접속 중..."}
+          {updatedAt &&
+            ` · 마지막 변동 ${updatedAt.toLocaleTimeString("ko-KR", { hour12: false })}`}
+        </p>
       </header>
-
-      {error && (
-        <div className="mb-6 rounded-xl border border-amber-700/50 bg-amber-950/40 px-4 py-3 text-sm text-amber-300">
-          {error}
-        </div>
-      )}
 
       {/* 주가 3종목 + 환율 + 미국 국채 2종 (한 줄 4열) */}
       <section className="grid grid-cols-3 gap-2 sm:gap-3 xl:grid-cols-4">
