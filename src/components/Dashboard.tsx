@@ -46,9 +46,13 @@ export default function Dashboard() {
 
   // 미국 국채: 5분 주기 폴링
   useEffect(() => {
-    loadTreasury();
+    // 첫 요청도 타이머로 예약해 렌더링 effect와 상태 갱신을 분리한다.
+    const initialTimer = setTimeout(loadTreasury, 0);
     const slowTimer = setInterval(loadTreasury, SLOW_INTERVAL_MS);
-    return () => clearInterval(slowTimer);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(slowTimer);
+    };
   }, [loadTreasury]);
 
   return (
